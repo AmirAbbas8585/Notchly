@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notchly</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-style="iphone">
+<div id="glow"></div>
+<svg width="0" height="0" style="position:absolute"><filter id="goo-f"><feGaussianBlur in="SourceGraphic" stdDeviation="3.2"/><feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"/></filter></svg>
+<canvas id="goo" width="700" height="96"></canvas>
+<canvas id="fx" width="700" height="110"></canvas>
+
+<div id="island">
+  <canvas id="sky"></canvas>
+
+  <!-- idle: eyes or clock -->
+  <div class="view on" data-view="idle">
+    <span id="i-face"><i></i><i></i></span><span id="i-time">--:--</span><span id="i-shelf"></span>
+  </div>
+
+  <!-- hover on idle: customizable tray -->
+  <div class="view" data-view="tools">
+    <div id="t-left" class="t-group"></div>
+    <span id="t-time" class="strong">--:--</span>
+    <span id="t-date" class="dim" data-tip-key="tip_calendar"></span>
+    <span id="t-bat" class="dim"></span>
+    <span class="sep"></span>
+    <button class="ib hidden" id="t-track" data-icon="note" data-tip-key="tip_back_track"></button>
+    <button class="ib hidden" id="t-play" data-icon="play" data-tip-key="tip_play"></button>
+    <div id="t-right" class="t-group"></div>
+    <!-- Tool buttons (dynamically placed into #t-left / #t-right by settings.iconOrder) -->
+    <button class="ib" id="t-shot" data-tool-id="screenshot" data-act="screenshot" data-icon="shot" data-tip-key="tip_screenshot"></button>
+    <button class="ib" id="t-clips" data-tool-id="clip" data-act="clips" data-icon="clipboard" data-tip-key="tip_clips"></button>
+    <button class="ib" id="t-notes" data-tool-id="notes" data-act="notes" data-icon="jot" data-tip-key="tip_notes"></button>
+    <button class="ib hidden" id="t-shelf" data-tool-id="shelf" data-act="shelf" data-icon="tray" draggable="true" data-tip-key="tip_shelf"></button>
+    <button class="ib" id="t-inbox" data-tool-id="notifs" data-act="inbox" data-icon="bell" data-tip-key="tip_notifs"></button>
+    <button class="ib" id="t-gear" data-tool-id="settings" data-act="settings" data-icon="gear" data-tip-key="tip_settings"></button>
+  </div>
+
+  <!-- now playing -->
+  <div class="view" data-view="media">
+    <div id="art"><span id="art-app"></span></div>
+    <div class="meta">
+      <div id="m-title">Nothing playing</div>
+      <div id="m-artist"></div>
+    </div>
+    <canvas id="bars" width="60" height="40"></canvas>
+    <button class="ib" id="b-prev" data-icon="prev" data-tip-key="tip_prev"></button>
+    <button class="ib solid" id="b-play" data-icon="play" data-tip-key="tip_play"></button>
+    <button class="ib" id="b-next" data-icon="next" data-tip-key="tip_next"></button>
+    <button class="ib small" id="b-more" data-icon="more" data-tip-key="tip_menu"></button>
+  </div>
+
+  <!-- incoming notification -->
+  <div class="view" data-view="notif">
+    <div id="n-icon"></div>
+    <span id="n-app" class="dim"></span>
+    <span id="n-title" class="strong" dir="auto"></span>
+    <span id="n-body" class="mqbox" dir="auto"><span class="mq"></span></span>
+  </div>
+
+  <!-- short status line -->
+  <div class="view" data-view="hud">
+    <span id="h-icon" class="glyph"></span>
+    <span id="h-title" class="strong" dir="auto"></span>
+    <span id="h-text" class="mqbox" dir="auto"><span class="mq"></span></span>
+  </div>
+
+  <!-- file drag over -->
+  <div class="view" data-view="drop">
+    <span class="glyph" data-icon="tray"></span>
+    <span class="strong" id="drop-lbl">Drop to hold</span>
+  </div>
+
+  <!-- held files -->
+  <div class="view" data-view="held">
+    <div id="hd-files"></div>
+    <button id="hd-more" class="dim" data-tip-key="tip_all_files"></button>
+    <button class="ib small" id="hd-menu" data-icon="more" data-tip-key="tip_menu"></button>
+  </div>
+
+  <!-- volume HUD -->
+  <div class="view" data-view="vol" data-tip-key="tip_mute">
+    <span id="v-icon" class="glyph" data-icon="volume"></span>
+    <div class="vbar"><i id="v-fill"></i></div>
+    <b id="v-num">50</b>
+  </div>
+
+  <!-- quick note input -->
+  <div class="view" data-view="input">
+    <span id="in-icon" class="glyph"></span>
+    <input id="in-text" type="text" spellcheck="false" autocomplete="off" dir="auto">
+    <span id="in-hint" class="dim"></span>
+    <button class="ib small" id="in-ok" data-icon="check" data-tip-key="tip_keep"></button>
+    <button class="ib small" id="in-cancel" data-icon="close" data-tip-key="tip_cancel"></button>
+  </div>
+
+  <!-- track position scrubber -->
+  <div id="seek"><i id="seek-fill"></i><b id="seek-knob"></b></div>
+
+  <div id="flash"></div>
+</div>
+
+<!-- waiting notification beside the pill -->
+<div id="side"><div class="ic"></div><span dir="auto"></span></div>
+
+<!-- stack below the island (notifications, files, clips, or redesigned settings) -->
+<div id="stack">
+  <div id="stack-head"></div>
+  <div id="stack-list"></div>
+  <button id="stack-clear">Clear all</button>
+</div>
+
+<!-- custom themed tooltip -->
+<div id="tooltip"></div>
+
+<script src="bridge.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
