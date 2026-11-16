@@ -112,7 +112,7 @@ pub fn data_dir() -> PathBuf {
     dir
 }
 pub fn temp_dir() -> PathBuf {
-    std::env::temp_dir().join("PeekyShelf")
+    std::env::temp_dir().join("NotchlyShelf")
 }
 
 /// A small rolling log: only unusual things are written (a click that never arrived, a window sitting on top…).

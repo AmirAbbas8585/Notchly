@@ -172,12 +172,12 @@ mod tests {
     #[test]
     fn signature_made_by_the_release_script_is_accepted() {
         let dist = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("dist");
-        let (setup, sig) = (dist.join("Peeky-Setup.exe"), dist.join("Peeky-Setup.exe.sig"));
+        let (setup, sig) = (dist.join("Notchly-Setup.exe"), dist.join("Notchly-Setup.exe.sig"));
         if !setup.exists() || !sig.exists() {
             return;
         }
         assert!(signed(&setup, &sig));
-        let bad = std::env::temp_dir().join("peeky-tampered.exe");
+        let bad = std::env::temp_dir().join("notchly-tampered.exe");
         let mut data = std::fs::read(&setup).unwrap();
         data[1000] ^= 1;
         std::fs::write(&bad, data).unwrap();
