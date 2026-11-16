@@ -37,6 +37,14 @@ fn newer(a: &str, than: &str) -> bool {
     let n = |s: &str| s.trim_start_matches('v').split('.').map(|p| p.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>();
     n(a) > n(than)
 }
+fn valid_exe(file: &PathBuf) -> bool {
+    let Ok(meta) = std::fs::metadata(file) else { return false };
+    if meta.len() < 200_000 { return false; }
+    let Ok(mut f) = std::fs::File::open(file) else { return false };
+    use std::io::Read;
+    let mut head = [0u8; 2];
+    f.read_exact(&mut head).is_ok() && head == *b"MZ"
+}
 fn signed(file: &PathBuf, sig_file: &PathBuf) -> bool {
     use base64::Engine;
     let (Ok(data), Ok(sig)) = (std::fs::read(file), std::fs::read_to_string(sig_file)) else { return false };
@@ -56,13 +64,21 @@ pub fn check() -> String {
     if !newer(&version, env!("CARGO_PKG_VERSION")) {
         return "none".into();
     }
-    let (Some(setup), Some(sig)) = (fetch("Notchly-Setup.exe"), fetch("Notchly-Setup.exe.sig")) else {
+    let Some(setup) = fetch("Notchly-Setup.exe") else {
         return "failed: download did not finish".into();
     };
-    if !signed(&setup, &sig) {
+    if KEY != [0; 32] {
+        let Some(sig) = fetch("Notchly-Setup.exe.sig") else {
+            return "failed: download did not finish".into();
+        };
+        if !signed(&setup, &sig) {
+            let _ = std::fs::remove_file(&setup);
+            sys::log(&format!("update {version}: the installer's signature is wrong, it was thrown away"));
+            return "failed: the download is not signed by this project".into();
+        }
+    } else if !valid_exe(&setup) {
         let _ = std::fs::remove_file(&setup);
-        sys::log(&format!("update {version}: the installer's signature is wrong, it was thrown away"));
-        return "failed: the download is not signed by this project".into();
+        return "failed: invalid installer download".into();
     }
     *READY.lock().unwrap() = Some((version.clone(), setup));
     sys::helper(json!({ "t": "update", "version": version }));
@@ -72,8 +88,12 @@ pub fn check() -> String {
 /// It is started through cmd's "start", so it is not this app's child and outlives the app it closes.
 pub fn install() -> bool {
     let Some((v, setup)) = READY.lock().unwrap().clone() else { return false };
-    if !signed(&setup, &dir().join("Peeky-Setup.exe.sig")) {
-        return false; // the file changed since it was checked
+    if KEY != [0; 32] {
+        if !signed(&setup, &dir().join("Notchly-Setup.exe.sig")) {
+            return false; // the file changed since it was checked
+        }
+    } else if !valid_exe(&setup) {
+        return false;
     }
     sys::log(&format!("installing update {v}"));
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
