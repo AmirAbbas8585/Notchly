@@ -72,6 +72,15 @@ unsafe fn foreground_fullscreen(me: u32) -> bool {
     let m = mi.rcMonitor;
     r.left <= m.left && r.top <= m.top && r.right >= m.right && r.bottom >= m.bottom
 }
+unsafe fn foreground_title(me: u32) -> String {
+    let h = GetForegroundWindow();
+    if h.0.is_null() || sys::pid_of(h) == me {
+        return String::new();
+    }
+    let mut buf = [0u16; 256];
+    let n = GetWindowTextW(h, &mut buf);
+    if n > 0 { String::from_utf16_lossy(&buf[..n as usize]) } else { String::new() }
+}
 
 // ---------------------------------------------------------------- Bluetooth devices connecting / disconnecting
 struct Bluetooth {
@@ -138,6 +147,7 @@ pub fn start() {
         let mut last_vol = String::new();
         let mut clip_seq = clip::sequence();
         let (mut cover_sent, mut cover_last) = (-1, -1);
+        let mut fg_sent = String::new();
         let start = Instant::now();
         let mut due: HashMap<&str, Instant> = HashMap::new();
         let mut every = |name: &'static str, ms: u64| -> bool {
@@ -214,11 +224,13 @@ pub fn start() {
                 let s = cover_state(me);
                 if s >= 0 {
                     let full = foreground_fullscreen(me);
+                    let fg_title = foreground_title(me);
                     let s = s + if full { 10 } else { 0 };
-                    // report only once the state has been stable for two polls
-                    if s == cover_last && s != cover_sent {
+                    // report only once the state has been stable for two polls, or when foreground window title changes
+                    if (s == cover_last && s != cover_sent) || fg_title != fg_sent {
                         cover_sent = s;
-                        sys::helper(json!({ "t": "cover", "covered": s % 10 == 1, "full": full }));
+                        fg_sent = fg_title.clone();
+                        sys::helper(json!({ "t": "cover", "covered": s % 10 == 1, "full": full, "fgTitle": fg_title }));
                     }
                     cover_last = s;
                 }

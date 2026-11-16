@@ -191,7 +191,7 @@ const st = {
   // settings
   lang: 'en', style: 'iphone', smartMode: true, iconOrder: DEFAULT_ICON_ORDER, setTab: 'general',
   autoHide: true, hideVideo: true, calendar: 'gregorian', deviceAlerts: true, shelfOn: true, visuals: true,
-  covered: false, full: false, tucked: false, peekSince: 0, revealUntil: 0,
+  covered: false, full: false, tucked: false, peekSince: 0, revealUntil: 0, fgTitle: '',
   typing: false, holdUntil: 0,
   parked: false, keys: false,
   face: 'eyes', settings: {}, notes: [], ctx: {}, lastUser: '',
@@ -793,6 +793,19 @@ function setArt(b64) {
 }
 // Films and series are not "now playing" material: the player says so (kind), or it is a known video app.
 const VIDEO_APPS = /vlc|mpv|mpc-hc|mpc-be|potplayer|kmplayer|smplayer|gomplayer|zunevideo|netflix|primevideo|disney|plex|kodi|stremio|filimo|namava|aparat/i;
+const BROWSER_APPS = /chrome|msedge|brave|firefox|opera|vivaldi|arc|chromium|zen|waterfox|floorp|thorium/i;
+const VIDEO_TITLES = /- youtube\b|youtube shorts|\bshorts\b|\btwitch\b|\bkick\b|\btiktok\b|\breels\b|\baparat\b|\bnetflix\b|\bprime video\b|\bdisney\b|\bcrunchyroll\b|\bbilibili\b|\bfilimo\b|\bnamava\b|\btelewebion\b/i;
+function isVideoMedia(m) {
+  if (!m || !m.active) return false;
+  if (m.kind === 'Video' || VIDEO_APPS.test(m.app || '')) return true;
+  if (BROWSER_APPS.test(m.app || '')) {
+    const fg = st.fgTitle || '';
+    if (!/youtube music|music\.youtube/i.test(fg) && VIDEO_TITLES.test(fg)) return true;
+    if (/#shorts|\bshorts\b/i.test((m.title || '') + ' ' + (m.artist || ''))) return true;
+    if (m.dur > 0 && m.dur <= 75000) return true;
+  }
+  return false;
+}
 function onMedia(m) {
   const was = st.media;
   if (!m.active) {
@@ -803,7 +816,7 @@ function onMedia(m) {
     paintAppBadge('');
   } else {
     const justSeeked = Date.now() - (st.seekAt || 0) < 1500 && m.key === was.key;
-    st.media = { ...m, at: performance.now(), video: m.kind === 'Video' || VIDEO_APPS.test(m.app || '') };
+    st.media = { ...m, at: performance.now(), video: isVideoMedia(m) };
     if (justSeeked) { st.media.pos = was.pos; st.media.at = was.at; }
     $('#m-title').textContent = m.title || T('ui.unknownTitle');
     if (!st.scrubbing) $('#m-artist').textContent = m.artist || '';
@@ -816,9 +829,9 @@ function onMedia(m) {
         }
       });
     }
-    if (musicOn()) {
+    if (musicOn() && st.smartMode) {
       if (m.key !== was.key && m.playing && !st.menuMode) {
-        st.revealUntil = Date.now() + (st.smartMode ? 3600 : 2800);
+        st.revealUntil = Date.now() + 3600;
         if (was.key) bump();
       }
     }
@@ -934,7 +947,12 @@ window.qazi.onHelper((m) => {
   else if (m.t === 'thumb') { if (m.key === st.media.key || !st.media.key) setArt(m.data); }
   else if (m.t === 'notif') onNotif(m);
   else if (m.t === 'notifGone') dropHistory(String(m.id));
-  else if (m.t === 'cover') { st.covered = !!m.covered; st.full = !!m.full; render(); }
+  else if (m.t === 'cover') {
+    st.covered = !!m.covered; st.full = !!m.full;
+    if (typeof m.fgTitle === 'string') st.fgTitle = m.fgTitle;
+    if (st.media.active) st.media.video = isVideoMedia(st.media);
+    render();
+  }
   else if (m.t === 'bt') {
     if (!st.deviceAlerts) return;
     const audio = /bud|pod|head|ear|speaker|sound|audio|jbl|sony|bose|beats|wh-|wf-|anker|jabra/i.test(m.name);
